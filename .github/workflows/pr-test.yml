@@ -10,8 +10,8 @@ jobs:
     - name: Install uv
       uses: astral-sh/setup-uv@v3
       with:
-      enable-cache: true
-      version: "latest"
+        enable-cache: true
+        version: "latest"
     - name: Install dependencies
       run: uv sync --locked
     - name: Collect static files
