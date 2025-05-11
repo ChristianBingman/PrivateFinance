@@ -3,20 +3,20 @@ run-name: Run all tests on a PR
 on: [push, pull_request]
 
 jobs:
-	test: 
-		runs-on: private-finance-runners 
-		steps: 
-		- uses: actions/checkout@v4 
-		- name: Install uv 
-		  uses: astral-sh/setup-uv@v3 
-		  with: 
-			enable-cache: true 
-			version: "latest" 
-		- name: Install dependencies 
-		  run: uv sync --locked
-		- name: Collect static files 
-		  run: uv run python manage.py collectstatic 
-		- name: Run Tests 
-		  run: uv run coverage run --source='.' manage.py test
+  test:
+    runs-on: private-finance-runners
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install uv
+      uses: astral-sh/setup-uv@v3
+      with:
+      enable-cache: true
+      version: "latest"
+    - name: Install dependencies
+      run: uv sync --locked
+    - name: Collect static files
+      run: uv run python manage.py collectstatic
+    - name: Run Tests
+      run: uv run coverage run --source='.' manage.py test
     - name: Show Report
       run: uv run coverage report
