@@ -14,8 +14,8 @@ jobs:
         version: "latest"
     - name: Install dependencies
       run: uv sync --locked
-    - name: Collect static files
-      run: uv run python manage.py collectstatic
+    #- name: Collect static files
+    #  run: uv run python manage.py collectstatic
     - name: Run Tests
       run: uv run coverage run --source='.' manage.py test
     - name: Show Report
