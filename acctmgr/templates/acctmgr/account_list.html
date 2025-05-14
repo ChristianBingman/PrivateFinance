@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+{% load static %}
+<html>
+  <head>
+    <title>Account Listing</title>
+    <link
+      rel="stylesheet"
+      href="{% static 'css/output.css' %}"
+      type="text/css"
+    />
+  </head>
+  <body>
+    <ul>
+      {% for account in accounts %}
+      <li class="hover:bg-sky-700">{{ account.name }}</li>
+      {% empty %}
+      <p>There are no accounts available</p>
+      {% endfor %}
+    </ul>
+    <button class="btn btn-primary">DaisyUI Button</button>
+  </body>
+</html>

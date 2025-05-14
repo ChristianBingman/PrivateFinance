@@ -1,0 +1,21 @@
+{
+  "name": "privatefinance",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "test": "uv run pytest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ChristianBingman/PrivateFinance.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/ChristianBingman/PrivateFinance/issues"
+  },
+  "homepage": "https://github.com/ChristianBingman/PrivateFinance#readme",
+  "devDependencies": {
+    "daisyui": "^5.0.35"
+  }
+}

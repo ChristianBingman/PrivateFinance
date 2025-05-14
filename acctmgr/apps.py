@@ -1,6 +1,6 @@
 from django.apps import AppConfig
 
 
-class LedgerConfig(AppConfig):
+class AcctmgrConfig(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
-    name = "ledger"
+    name = "acctmgr"

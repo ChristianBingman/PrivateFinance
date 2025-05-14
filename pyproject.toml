@@ -14,4 +14,8 @@ dev = [
     "jedi-language-server>=0.45.1",
     "pytest>=8.3.5",
     "pytest-django>=4.11.1",
+    "ruff>=0.11.9",
 ]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "test.settings"
