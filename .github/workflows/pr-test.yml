@@ -16,7 +16,11 @@ jobs:
       run: uv sync --locked
     #- name: Collect static files
     #  run: uv run python manage.py collectstatic
+    - name: Check ruff
+      run: uv run ruff check
+    - name: Check format
+      run: uv run ruff format --exit-non-zero-on-format
     - name: Run Tests
-      run: uv run coverage run --source='.' manage.py test
+      run: uv run coverage run
     - name: Show Report
       run: uv run coverage report
