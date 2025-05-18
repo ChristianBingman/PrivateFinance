@@ -20,8 +20,6 @@ class Currency(models.Model):
         return self.full_name
 
     def clean(self):
-        if self.fraction_traded < 0:
-            raise ValidationError("Fraction traded must be a positive integer")
         if (
             -decimal.Decimal(self.current_price).as_tuple().exponent
             > self.fraction_traded
@@ -51,6 +49,13 @@ class AccountTypes(models.TextChoices):
 
 
 class AccountManager(models.Manager):
+    def _build_account_tree(self, account: "Account"):
+        children = account.account_set.all()
+        if len(children) == 0:
+            return {account: []}
+
+        return {account: [self._build_account_tree(account) for account in children]}
+
     def get_accounts(self) -> dict:
         """Get a list of accounts structured
 
@@ -58,7 +63,7 @@ class AccountManager(models.Manager):
         {"asset": QuerySet, "liability": QuerySet, "equity": QuerySet, "revenue": QuerySet, "expense": QuerySet}
         """
         types = [
-            {acct_type: self.get_accounts_by_type(acct_type)}
+            {acct_type: [self._build_account_tree(account) for account in self.get_accounts_by_type(acct_type).filter(parent=None)]}
             for acct_type in AccountTypes
         ]
         return dict(reduce(operator.or_, types, {}))
@@ -85,3 +90,10 @@ class Account(models.Model):
 
     def __str__(self):
         return self.name
+
+    def clean(self):
+        current = self.parent
+        while current != None:
+            if current.pk == self.pk:
+                raise ValidationError("Detected cycle when setting parent.")
+            current = current.parent

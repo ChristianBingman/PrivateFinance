@@ -1,8 +1,7 @@
-from django.views.generic import ListView
+from django.shortcuts import render
 
 from .models import Account
 
-
-class AccountView(ListView):
-    model = Account
-    context_object_name = "accounts"
+def index(request):
+    context = {"accounts": Account.objects.get_accounts()}
+    return render(request, "acctmgr/account_list.html", context)

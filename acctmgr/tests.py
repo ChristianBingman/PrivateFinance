@@ -1,5 +1,9 @@
 import pytest
 from decimal import Decimal
+from functools import reduce
+import operator
+from django.core.exceptions import ValidationError
+from django.db.utils import IntegrityError
 
 from .models import Currency, CurrencyForm, Account, AccountTypes
 
@@ -15,14 +19,18 @@ def test_create_simple_currency():
 
 @pytest.mark.django_db
 def test_invalid_fraction_traded():
+    inv_cur = {
+        "full_name": "Invalid Currency",
+        "symbol": "INV",
+        "current_price": 1.1234,
+        "fraction_traded": 2,
+    }
+    curr_form = CurrencyForm(inv_cur)
     with pytest.raises(ValueError):
-        inv_cur = {
-            "full_name": "Invalid Currency",
-            "symbol": "INV",
-            "current_price": 1.1234,
-            "fraction_traded": 2,
-        }
-        curr_form = CurrencyForm(inv_cur)
+        assert not curr_form.is_valid()
+        curr_form.save()
+    with pytest.raises(ValueError):
+        curr_form.fraction_traded = -1
         assert not curr_form.is_valid()
         curr_form.save()
 
@@ -32,7 +40,7 @@ def test_only_required_attribute():
     currency = CurrencyForm({"full_name": "USD", "symbol": "USD"})
     currency.save()
     usd_cur = Currency.objects.get(symbol="USD")
-    assert usd_cur.full_name == "USD"
+    assert str(usd_cur) == "USD"
     assert usd_cur.symbol == "USD"
     assert usd_cur.fraction_traded == 2
     assert usd_cur.current_price == Decimal(1.0)
@@ -52,6 +60,7 @@ def test_create_simple_account():
     )
     sample_account.save()
     assert Account.objects.count() == 1
+    assert str(sample_account) == "Some Bank"
 
 
 @pytest.mark.django_db
@@ -155,12 +164,35 @@ def setup_example_db():
         description="Opening Balances",
     ).save()
 
+def validate_child(accounts: list[dict]):
+    # if there are children check they are valid first
+    # then check that the children are the same
+    for account in accounts:
+        for parent, children in account.items():
+            validate_child(children)
+            children_qs = parent.account_set.all()
+            if len(children) == 0:
+                assert len(children_qs) == 0
+            else:
+                assert list(children_qs) == list(reduce(operator.or_, children).keys())
 
 @pytest.mark.django_db
 def test_get_account_listing(setup_example_db):
     accounts = Account.objects.get_accounts()
     assert list(accounts.keys()) == list(AccountTypes)
-    for acct_type in AccountTypes:
-        assert list(Account.objects.filter(acct_type=acct_type)) == list(
-            accounts[acct_type]
-        )
+    for account in accounts.values():
+        validate_child(account)
+
+@pytest.mark.django_db
+def test_cycles_not_allowed(setup_example_db):
+    savings_account = Account.objects.get(description__contains="Savings Account")
+    parent_account = Account.objects.get(name="Bank Accounts")
+    parent_account.parent = savings_account
+    with pytest.raises(ValidationError):
+        parent_account.full_clean()
+
+@pytest.mark.django_db
+def test_duplicate_currencies(setup_example_db):
+    dup_cur = Currency(full_name="New currency", symbol="USD")
+    with pytest.raises(IntegrityError):
+        dup_cur.save()

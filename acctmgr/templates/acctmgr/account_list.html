@@ -10,13 +10,16 @@
     />
   </head>
   <body>
-    <ul>
-      {% for account in accounts %}
-      <li class="hover:bg-sky-700">{{ account.name }}</li>
-      {% empty %}
-      <p>There are no accounts available</p>
+    <div>
+      {% for acct_type, accounts in accounts.items %}
+      <div class="collapse collapse-arrow">
+        <input type="checkbox" />
+        <div class="collapse-title text-sm p-1">{{ acct_type|upper }}</div>
+        <div class="collapse-content text-sm">
+          {% include "acctmgr/account_parent.html" %}
+        </div>
+      </div>
       {% endfor %}
-    </ul>
-    <button class="btn btn-primary">DaisyUI Button</button>
+    </div>
   </body>
 </html>
