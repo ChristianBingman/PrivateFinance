@@ -1,0 +1,15 @@
+{% for account in accounts %}
+  {% for parent, accounts in account.items %}
+    {% if accounts|length > 0 %}
+      <div class="collapse collapse-arrow">
+        <input type="checkbox" />
+        <div class="collapse-title py-1">{{ parent.name }}</div>
+        <div class="collapse-content text-sm">
+          {% include "acctmgr/account_parent.html" %}
+        </div>
+      </div>
+    {% else %}
+      <div class="text-sm">{{ parent.name }}</div>
+    {% endif %}
+  {% endfor %}
+{% endfor %}
