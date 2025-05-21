@@ -1,6 +1,5 @@
 from django.db import models
 from django.core.exceptions import ValidationError
-from django import forms
 from functools import reduce
 from decimal import Decimal, ROUND_HALF_DOWN
 import operator
@@ -22,8 +21,10 @@ class Currency(models.Model):
     def save(self, *args, **kwargs):
         if self.full_name == "":
             self.full_name = self.symbol
-        self.current_price = Decimal(self.current_price).quantize(Decimal(str(1.0/(10**self.fraction_traded))), rounding=ROUND_HALF_DOWN)
-        super().save(*args,**kwargs)
+        self.current_price = Decimal(self.current_price).quantize(
+            Decimal(str(1.0 / (10**self.fraction_traded))), rounding=ROUND_HALF_DOWN
+        )
+        super().save(*args, **kwargs)
 
 
 class AccountTypes(models.TextChoices):
@@ -49,7 +50,14 @@ class AccountManager(models.Manager):
         {"asset": QuerySet, "liability": QuerySet, "equity": QuerySet, "revenue": QuerySet, "expense": QuerySet}
         """
         types = [
-            {acct_type: [self._build_account_tree(account) for account in self.get_accounts_by_type(acct_type).filter(parent=None)]}
+            {
+                acct_type: [
+                    self._build_account_tree(account)
+                    for account in self.get_accounts_by_type(acct_type).filter(
+                        parent=None
+                    )
+                ]
+            }
             for acct_type in AccountTypes
         ]
         return dict(reduce(operator.or_, types, {}))
@@ -79,7 +87,7 @@ class Account(models.Model):
 
     def clean(self):
         current = self.parent
-        while current != None:
+        while current is None:
             if current.pk == self.pk:
                 raise ValidationError("Detected cycle when setting parent.")
             current = current.parent

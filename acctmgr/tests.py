@@ -19,13 +19,12 @@ def test_create_simple_currency():
 
 @pytest.mark.django_db
 def test_rounding_price():
-    inv_cur = {
-        "full_name": "Invalid Currency",
-        "symbol": "INV",
-        "current_price": Decimal("1.1234"),
-        "fraction_traded": 2,
-    }
-    Currency.objects.create(full_name="Rounded Currency", symbol="RND", current_price=Decimal("1.1234"), fraction_traded=2)
+    Currency.objects.create(
+        full_name="Rounded Currency",
+        symbol="RND",
+        current_price=Decimal("1.1234"),
+        fraction_traded=2,
+    )
     assert Currency.objects.get(symbol="RND").current_price == Decimal("1.12")
 
 
@@ -156,6 +155,7 @@ def setup_example_db():
         description="Opening Balances",
     ).save()
 
+
 def validate_child(accounts: list[dict]):
     # if there are children check they are valid first
     # then check that the children are the same
@@ -168,12 +168,14 @@ def validate_child(accounts: list[dict]):
             else:
                 assert list(children_qs) == list(reduce(operator.or_, children).keys())
 
+
 @pytest.mark.django_db
 def test_get_account_listing(setup_example_db):
     accounts = Account.objects.get_accounts()
     assert list(accounts.keys()) == list(AccountTypes)
     for account in accounts.values():
         validate_child(account)
+
 
 @pytest.mark.django_db
 def test_cycles_not_allowed(setup_example_db):
@@ -182,6 +184,7 @@ def test_cycles_not_allowed(setup_example_db):
     parent_account.parent = savings_account
     with pytest.raises(ValidationError):
         parent_account.full_clean()
+
 
 @pytest.mark.django_db
 def test_duplicate_currencies(setup_example_db):

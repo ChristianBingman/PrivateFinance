@@ -6,31 +6,58 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
     dependencies = [
-        ('acctmgr', '0003_account_placeholder'),
+        ("acctmgr", "0003_account_placeholder"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='TransactionDetail',
+            name="TransactionDetail",
             fields=[
-                ('id', models.BigAutoField(primary_key=True, serialize=False, verbose_name='transaction id')),
-                ('description', models.CharField(max_length=100)),
-                ('xact_date', models.DateField(default=datetime.datetime.now)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        primary_key=True, serialize=False, verbose_name="transaction id"
+                    ),
+                ),
+                ("description", models.CharField(max_length=100)),
+                ("xact_date", models.DateField(default=datetime.datetime.now)),
             ],
         ),
         migrations.CreateModel(
-            name='TransactionEntry',
+            name="TransactionEntry",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('memo', models.CharField(blank=True, max_length=256)),
-                ('price', models.DecimalField(decimal_places=10, default=1, max_digits=19)),
-                ('amount', models.DecimalField(decimal_places=10, max_digits=19)),
-                ('account', models.ForeignKey(on_delete=django.db.models.deletion.RESTRICT, to='acctmgr.account')),
-                ('transaction_id', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='ledger.transactiondetail')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("memo", models.CharField(blank=True, max_length=256)),
+                (
+                    "price",
+                    models.DecimalField(decimal_places=10, default=1, max_digits=19),
+                ),
+                ("amount", models.DecimalField(decimal_places=10, max_digits=19)),
+                (
+                    "account",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.RESTRICT,
+                        to="acctmgr.account",
+                    ),
+                ),
+                (
+                    "transaction_id",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to="ledger.transactiondetail",
+                    ),
+                ),
             ],
         ),
     ]

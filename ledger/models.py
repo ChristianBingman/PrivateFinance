@@ -1,12 +1,14 @@
 from django.db import models, transaction
 from datetime import datetime
-from acctmgr.models import Account, Currency
+from acctmgr.models import Account
 import decimal
+
 
 class TransactionDetail(models.Model):
     id = models.BigAutoField("transaction id", primary_key=True)
     description = models.CharField(max_length=100)
     xact_date = models.DateField(default=datetime.now)
+
 
 class TransactionManager(models.Manager):
     @transaction.atomic
@@ -16,12 +18,13 @@ class TransactionManager(models.Manager):
             if entry.transaction_id != transaction_id:
                 raise ValueError("All entries must have the same transaction id.")
             entry.save()
-        
+
         total = decimal.Decimal(0)
         for xact in self.filter(transaction_id=transaction_id):
             total += decimal.Decimal(xact.amount)
         if total != decimal.Decimal(0):
             raise ValueError("Transaction is not balanced.")
+
 
 class TransactionEntry(models.Model):
     # Deleting the transaction detail should delete all entries for that xact
@@ -33,8 +36,13 @@ class TransactionEntry(models.Model):
     amount = models.DecimalField(decimal_places=10, max_digits=19)
     objects = TransactionManager()
 
-    
     def save(self, *args, **kwargs):
-        self.amount = decimal.Decimal(self.amount).quantize(decimal.Decimal(str(1.0/(10**self.account.currency.fraction_traded))), rounding=decimal.ROUND_HALF_DOWN)
-        self.price = decimal.Decimal(self.price).quantize(decimal.Decimal(str(1.0/(10**self.account.currency.fraction_traded))), rounding=decimal.ROUND_HALF_DOWN)
-        super().save(*args,**kwargs)
+        self.amount = decimal.Decimal(self.amount).quantize(
+            decimal.Decimal(str(1.0 / (10**self.account.currency.fraction_traded))),
+            rounding=decimal.ROUND_HALF_DOWN,
+        )
+        self.price = decimal.Decimal(self.price).quantize(
+            decimal.Decimal(str(1.0 / (10**self.account.currency.fraction_traded))),
+            rounding=decimal.ROUND_HALF_DOWN,
+        )
+        super().save(*args, **kwargs)

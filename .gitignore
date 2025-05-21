@@ -163,3 +163,6 @@ logs
 
 # Environment variables
 .env*
+
+# Tailwind
+**/output.css
