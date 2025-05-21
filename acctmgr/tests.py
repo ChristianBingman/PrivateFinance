@@ -5,45 +5,37 @@ import operator
 from django.core.exceptions import ValidationError
 from django.db.utils import IntegrityError
 
-from .models import Currency, CurrencyForm, Account, AccountTypes
+from .models import Currency, Account, AccountTypes
 
 
 @pytest.mark.django_db
 def test_create_simple_currency():
     usd_cur = Currency(
-        full_name="USD", symbol="USD", current_price=1.0, fraction_traded=2
+        full_name="USD", symbol="USD", current_price=1, fraction_traded=2
     )
     usd_cur.save()
     assert len(Currency.objects.all()) == 1
 
 
 @pytest.mark.django_db
-def test_invalid_fraction_traded():
+def test_rounding_price():
     inv_cur = {
         "full_name": "Invalid Currency",
         "symbol": "INV",
-        "current_price": 1.1234,
+        "current_price": Decimal("1.1234"),
         "fraction_traded": 2,
     }
-    curr_form = CurrencyForm(inv_cur)
-    with pytest.raises(ValueError):
-        assert not curr_form.is_valid()
-        curr_form.save()
-    with pytest.raises(ValueError):
-        curr_form.fraction_traded = -1
-        assert not curr_form.is_valid()
-        curr_form.save()
+    Currency.objects.create(full_name="Rounded Currency", symbol="RND", current_price=Decimal("1.1234"), fraction_traded=2)
+    assert Currency.objects.get(symbol="RND").current_price == Decimal("1.12")
 
 
 @pytest.mark.django_db
 def test_only_required_attribute():
-    currency = CurrencyForm({"full_name": "USD", "symbol": "USD"})
-    currency.save()
-    usd_cur = Currency.objects.get(symbol="USD")
+    usd_cur = Currency.objects.create(symbol="USD")
     assert str(usd_cur) == "USD"
     assert usd_cur.symbol == "USD"
     assert usd_cur.fraction_traded == 2
-    assert usd_cur.current_price == Decimal(1.0)
+    assert usd_cur.current_price == Decimal(1.00)
 
 
 @pytest.mark.django_db
