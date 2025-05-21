@@ -87,7 +87,7 @@ class Account(models.Model):
 
     def clean(self):
         current = self.parent
-        while current is None:
+        while current is not None:
             if current.pk == self.pk:
                 raise ValidationError("Detected cycle when setting parent.")
             current = current.parent
