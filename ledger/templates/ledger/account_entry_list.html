@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+{% load static %}
+<html>
+  <head>
+    <title>Account Listing</title>
+    <link
+      rel="stylesheet"
+      href="{% static 'css/output.css' %}"
+      type="text/css"
+    />
+  </head>
+  <body>
+    <div>
+      <ul>
+        {% for entry in object_list %}
+        <li>{{entry.transaction_id.description}} {{entry.amount|floatformat:entry.account.currency.fraction_traded}}</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </body>
+</html>
