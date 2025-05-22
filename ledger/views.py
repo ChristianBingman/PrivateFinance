@@ -3,9 +3,11 @@ from django.views.generic.list import ListView
 from django.shortcuts import get_object_or_404
 from acctmgr.models import Account
 
+
 # Create your views here.
 def index(request):
     return HttpResponse("This will display the list of transactions for an account.")
+
 
 class AccountView(ListView):
     template_name = "ledger/account_entry_list.html"
