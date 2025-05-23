@@ -12,6 +12,7 @@ dependencies = [
 dev = [
     "coverage>=7.8.0",
     "jedi-language-server>=0.45.1",
+    "pre-commit>=4.2.0",
     "pytest>=8.3.5",
     "pytest-django>=4.11.1",
     "ruff>=0.11.9",
@@ -34,3 +35,7 @@ omit = [
 [tool.coverage.report]
 fail_under = 95
 skip_empty = true
+
+[tool.pyright]
+venvPath = "."
+venv = ".venv"

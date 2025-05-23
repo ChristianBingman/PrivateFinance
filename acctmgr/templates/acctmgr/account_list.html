@@ -1,25 +1,37 @@
-<!DOCTYPE html>
+{% extends 'base.html' %}
 {% load static %}
-<html>
-  <head>
-    <title>Account Listing</title>
-    <link
-      rel="stylesheet"
-      href="{% static 'css/output.css' %}"
-      type="text/css"
-    />
-  </head>
-  <body>
-    <div>
-      {% for acct_type, accounts in accounts.items %}
-      <div class="collapse collapse-arrow">
-        <input type="checkbox" />
-        <div class="collapse-title text-sm p-1">{{ acct_type|upper }}</div>
-        <div class="collapse-content text-sm">
-          {% include "acctmgr/account_parent.html" %}
-        </div>
+
+{% block title %}
+<title>Account Listing</title>
+{% endblock %}
+
+{% block customhead %}
+<link
+  rel="stylesheet"
+  href="{% static 'css/accounts.css' %}"
+  type="text/css"
+/>
+{% endblock %}
+
+{% block content %}
+<div class="grid grid-cols-4 gap-4">
+  <div>
+    {% for acct_type, accounts in accounts.items %}
+    <div class="collapse collapse-arrow">
+      <input type="checkbox" />
+      <div class="collapse-title text-sm p-1">{{ acct_type|upper }}</div>
+      <div class="collapse-content text-sm">
+        {% include "acctmgr/account_parent.html" %}
       </div>
-      {% endfor %}
     </div>
-  </body>
-</html>
+    {% endfor %}
+  </div>
+  <div class="col-span-3">
+    {% if transaction_entries  %}
+    {% include "ledger/account_entry_list.html" %}
+    {% else %}
+    <h2>Please select an account.</h2>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

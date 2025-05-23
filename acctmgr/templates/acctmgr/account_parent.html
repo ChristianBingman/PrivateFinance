@@ -9,7 +9,7 @@
         </div>
       </div>
     {% else %}
-      <div class="text-sm">{{ parent.name }}</div>
+      <a href="{% url 'acctmgr:account-view' parent.id %}" class="text-sm">{{ parent.name }}</a>
     {% endif %}
   {% endfor %}
 {% endfor %}
