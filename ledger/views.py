@@ -1,17 +1,18 @@
-from django.http import HttpResponse
-from django.views.generic.list import ListView
-from django.shortcuts import get_object_or_404
-from acctmgr.models import Account
+from django.http import HttpResponseRedirect, HttpRequest
+from django.urls import reverse
+from .forms import TransactionCreateForm
 
 
 # Create your views here.
-def index(request):
-    return HttpResponse("This will display the list of transactions for an account.")
-
-
-class AccountView(ListView):
-    template_name = "ledger/account_entry_list.html"
-
-    def get_queryset(self):
-        account = get_object_or_404(Account, pk=self.kwargs["pk"])
-        return account.transactionentry_set.all()
+def xact_create(request: HttpRequest):
+    print(request.GET)
+    if request.method == "POST":
+        form = TransactionCreateForm(request.POST)
+        if form.is_valid():
+            # TODO: Create the data
+            return HttpResponseRedirect(
+                reverse(
+                    "acctmgr:account-view", args=[form.cleaned_data["selected_account"]]
+                )
+            )
+    return HttpResponseRedirect(reverse("acctmgr:account-index"))
