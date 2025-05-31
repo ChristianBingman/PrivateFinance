@@ -28,7 +28,7 @@
     {% if transaction_entries %}
       <form action="{% url 'ledger:xact-create' %}" method="POST">
         {% csrf_token %}
-        {{ create_form }}
+        {{ transaction_create_form }}
         <button type="submit">Create Transaction</button>
       </form>
     {% endif %}

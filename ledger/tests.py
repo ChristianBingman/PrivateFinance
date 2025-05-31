@@ -1,9 +1,13 @@
 import pytest
 import decimal
 from .models import TransactionEntry, TransactionDetail
+from .forms import TransactionCreateForm
 from acctmgr.models import Account, Currency, AccountTypes
 from django.db.models.deletion import RestrictedError
 from datetime import datetime
+from django.test import Client
+from django.urls import reverse
+from pytest_django.asserts import assertRedirects
 
 
 @pytest.fixture
@@ -243,3 +247,101 @@ def test_account_transaction_query(setup_example_accounts):
 
     assert len(from_account.transactionentry_set.all()) == 1
     assert len(to_account.transactionentry_set.all()) == 1
+
+
+@pytest.mark.django_db
+def test_simple_transaction_form(setup_example_accounts):
+    form = TransactionCreateForm(
+        {
+            "date": datetime.now(),
+            "description": "A simple transaction",
+            "amount_1": decimal.Decimal("10.00"),
+            "account_1": Account.objects.get(name="Dining"),
+            "amount_2": decimal.Decimal("-10.00"),
+            "account_2": Account.objects.get(name="Example Bank 1"),
+        }
+    )
+    assert form.is_valid(), form.errors
+
+
+@pytest.mark.django_db
+def test_complex_transaction_form(setup_example_accounts):
+    form = TransactionCreateForm(
+        {
+            "date": datetime.now(),
+            "description": "A complex transaction",
+            "amount_1": decimal.Decimal("10.00"),
+            "account_1": Account.objects.get(name="Dining"),
+            "amount_2": decimal.Decimal("-5.00"),
+            "account_2": Account.objects.get(name="Example Bank 1"),
+            "amount_3": decimal.Decimal("-5.00"),
+            "account_3": Account.objects.get(name="Example Bank 2"),
+        }
+    )
+    assert form.is_valid(), form.errors
+
+
+@pytest.mark.django_db
+def test_invalid_transaction_form_with_invalid_sum(setup_example_accounts):
+    form = TransactionCreateForm(
+        {
+            "date": datetime.now(),
+            "description": "A complex transaction",
+            "amount_1": decimal.Decimal("10.00"),
+            "account_1": Account.objects.get(name="Dining"),
+            "amount_2": decimal.Decimal("0.00"),
+            "account_2": Account.objects.get(name="Example Bank 1"),
+        }
+    )
+    assert not form.is_valid(), form.errors
+
+
+@pytest.mark.django_db
+def test_create_transaction_form_is_available_on_ledger_page(setup_example_accounts):
+    client = Client()
+    # TODO: Reorganize these urls
+    res = client.get("/accounts/account/2")
+    assert res.context["transaction_create_form"].initial["selected_account"] == 2
+
+
+@pytest.mark.django_db
+def test_transaction_form_submission_redirects_on_success(setup_example_accounts):
+    client = Client()
+    res = client.post(
+        reverse("ledger:xact-create"),
+        {
+            "date": "2025-05-27",
+            "description": "A sample transaction",
+            "amount_1": "10.00",
+            "account_1": "3",
+            "selected_account": 2,
+        },
+    )
+    assertRedirects(res, reverse("acctmgr:account-view", args=[2]))
+
+
+@pytest.mark.django_db
+def test_transaction_form_submission_redirects_on_failure(setup_example_accounts):
+    client = Client()
+    res = client.post(
+        reverse("ledger:xact-create"),
+        {
+            "date": "2025-05-27",
+            "description": "A sample transaction",
+            "amount_1": "10.00",
+            "account_1": "100",
+            "selected_account": 2,
+        },
+    )
+    assertRedirects(res, reverse("acctmgr:account-index"))
+
+
+@pytest.mark.django_db
+def test_transaction_form_non_post_redirects(setup_example_accounts):
+    client = Client()
+    res = client.get(reverse("ledger:xact-create"))
+    assertRedirects(res, reverse("acctmgr:account-index"))
+
+
+@pytest.mark.django_db
+def test_transaction_form_save_is_successful(setup_example_accounts): ...

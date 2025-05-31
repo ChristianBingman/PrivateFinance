@@ -5,7 +5,6 @@ from .forms import TransactionCreateForm
 
 # Create your views here.
 def xact_create(request: HttpRequest):
-    print(request.GET)
     if request.method == "POST":
         form = TransactionCreateForm(request.POST)
         if form.is_valid():
