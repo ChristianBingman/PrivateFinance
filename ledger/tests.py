@@ -344,4 +344,40 @@ def test_transaction_form_non_post_redirects(setup_example_accounts):
 
 
 @pytest.mark.django_db
-def test_transaction_form_save_is_successful(setup_example_accounts): ...
+def test_transaction_form_save_is_successful(setup_example_accounts):
+    form = TransactionCreateForm(
+        {
+            "date": datetime.now(),
+            "description": "A simple transaction",
+            "amount_1": decimal.Decimal("10.00"),
+            "account_1": Account.objects.get(name="Dining"),
+            "memo_2": "transaction id - xxx",
+            "amount_2": decimal.Decimal("-10.00"),
+            "account_2": Account.objects.get(name="Example Bank 1"),
+        }
+    )
+    assert form.is_valid(), form.errors
+    form.save()
+    assert TransactionDetail.objects.get(pk=1).description == "A simple transaction"
+    assert len(Account.objects.get(name="Dining").transactionentry_set.all()) == 1
+    assert (
+        len(Account.objects.get(name="Example Bank 1").transactionentry_set.all()) == 1
+    )
+    assert len(TransactionEntry.objects.filter(memo__startswith="transaction id")) == 1
+
+
+@pytest.mark.django_db
+def test_transaction_form_with_amount_and_missing_account_is_not_valid(
+    setup_example_accounts,
+):
+    form = TransactionCreateForm(
+        {
+            "date": datetime.now(),
+            "description": "A complex transaction",
+            "amount_1": decimal.Decimal("10.00"),
+            "account_1": Account.objects.get(name="Dining"),
+            "amount_2": decimal.Decimal("-5.00"),
+            "selected_account": 2,
+        }
+    )
+    assert not form.is_valid()

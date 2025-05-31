@@ -4,6 +4,8 @@ import decimal
 from functools import reduce
 from acctmgr.models import Account
 from django.core.exceptions import ValidationError
+from .models import TransactionDetail, TransactionEntry
+from django.db import transaction
 
 
 class TransactionCreateForm(forms.Form):
@@ -57,14 +59,20 @@ class TransactionCreateForm(forms.Form):
         selected_account = next(cleaned_data_iter)
         memo = next(cleaned_data_iter)
         amount = next(cleaned_data_iter)
-        while account := next(cleaned_data_iter):
-            transaction_tuples.append((memo, amount, account))
+        account = next(cleaned_data_iter)
+        for _ in range(1, self.max_split):
+            if account is not None and amount is None:
+                raise ValidationError("Amount is required when account is defined")
+            elif account is None and amount is not None:
+                raise ValidationError("Account is required when amount is defined")
+            elif account is not None and amount is not None:
+                transaction_tuples.append((memo, amount, account))
             memo = next(cleaned_data_iter)
             amount = next(cleaned_data_iter)
+            account = next(cleaned_data_iter)
 
         # If it is a simple transaction, add the reverse entry
         if len(transaction_tuples) == 1:
-            # TODO: Make sure this get is safe
             transaction_tuples.append(
                 (
                     "",
@@ -75,9 +83,27 @@ class TransactionCreateForm(forms.Form):
 
         self.cleaned_data["transactions"] = transaction_tuples
 
-        # TODO: Handle potentially bad input
         xact_sum = reduce(lambda acc, val: acc + val[1], transaction_tuples, 0)
         if xact_sum != 0:
             # In the future we should just throw the difference in an imbalance account
             raise ValidationError("Transaction does not sum to 0.")
         return self.cleaned_data
+
+    @transaction.atomic
+    def save(self):
+        xact_detail = TransactionDetail(
+            description=self.cleaned_data["description"],
+            xact_date=self.cleaned_data["date"],
+        )
+        xact_detail.save()
+        entries = []
+        for memo, amount, account in self.cleaned_data["transactions"]:
+            entries.append(
+                TransactionEntry(
+                    transaction_id=xact_detail,
+                    account=account,
+                    memo=memo,
+                    amount=amount,
+                )
+            )
+        TransactionEntry.objects.create_balanced_transaction(entries)

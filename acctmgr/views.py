@@ -13,7 +13,7 @@ def index(request: HttpRequest, pk=None):
         ),
     }
     if pk is not None:
-        context["transaction_entries"] = get_object_or_404(
-            Account, pk=pk
-        ).transactionentry_set.all()
+        selected_account = get_object_or_404(Account, pk=pk)
+        context["selected_account"] = selected_account
+        context["transaction_entries"] = selected_account.transactionentry_set.all()
     return render(request, "acctmgr/account_list.html", context)

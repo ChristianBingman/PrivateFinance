@@ -3,12 +3,11 @@ from django.urls import reverse
 from .forms import TransactionCreateForm
 
 
-# Create your views here.
 def xact_create(request: HttpRequest):
     if request.method == "POST":
         form = TransactionCreateForm(request.POST)
         if form.is_valid():
-            # TODO: Create the data
+            form.save()
             return HttpResponseRedirect(
                 reverse(
                     "acctmgr:account-view", args=[form.cleaned_data["selected_account"]]
