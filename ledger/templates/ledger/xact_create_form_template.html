@@ -1,6 +1,14 @@
 {% for field in form %}
+  {% if 'memo_1' in field.id_for_label %}
+    <div class='entryGroup inline' id="id_transaction_group_1">
+  {% elif 'memo_' in field.id_for_label %}
+    <div class='entryGroup'>
+  {% endif %}
     <div class="fieldWrapper inline">
         {{ field.errors }}
         {{ field }}
     </div>
+  {% if 'account_' in field.id_for_label %}
+    </div>
+  {% endif %}
 {% endfor %}

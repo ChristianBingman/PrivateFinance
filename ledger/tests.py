@@ -381,3 +381,42 @@ def test_transaction_form_with_amount_and_missing_account_is_not_valid(
         }
     )
     assert not form.is_valid()
+
+
+@pytest.mark.django_db
+def test_transaction_form_edit_replaces_transaction_entries(setup_example_accounts):
+    form = TransactionCreateForm(
+        {
+            "date": datetime.now(),
+            "description": "A simple transaction",
+            "amount_1": decimal.Decimal("10.00"),
+            "account_1": Account.objects.get(name="Dining"),
+            "memo_2": "transaction id - xxx",
+            "amount_2": decimal.Decimal("-10.00"),
+            "account_2": Account.objects.get(name="Example Bank 1"),
+        }
+    )
+    assert form.is_valid(), form.errors
+    form.save()
+    update_form = TransactionCreateForm(
+        {
+            "date": datetime.now(),
+            "description": "A simple transaction",
+            "amount_1": decimal.Decimal("20.00"),
+            "account_1": Account.objects.get(name="Dining"),
+            "memo_2": "updated transaction id - xxx",
+            "amount_2": decimal.Decimal("-20.00"),
+            "account_2": Account.objects.get(name="Example Bank 2"),
+            "selected_transaction": 1,
+        }
+    )
+    assert update_form.is_valid(), form.errors
+    update_form.save()
+    example_account_1 = Account.objects.get(name="Example Bank 1")
+    example_account_2 = Account.objects.get(name="Example Bank 2")
+    assert len(example_account_1.transactionentry_set.all()) == 0
+    assert len(example_account_2.transactionentry_set.all()) == 1
+    assert len(TransactionDetail.objects.get(pk=2).transactionentry_set.all()) == 2
+    assert example_account_2.transactionentry_set.first().amount == decimal.Decimal(
+        "-20.00"
+    )

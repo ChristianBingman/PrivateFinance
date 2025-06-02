@@ -32,12 +32,12 @@
     <h2 class="text-2xl">{{ selected_account.name }}</h2>
     <br />
     {% include "ledger/account_entry_list.html" %}
-      <form class="bg-slate-800" action="{% url 'ledger:xact-create' %}" method="POST">
-        {% csrf_token %}
-        {{ transaction_create_form }}
-        <button type="submit">Create Transaction</button>
-        <button type="button" id="show-complex">Show Split</button>
-      </form>
+    <form class="bg-slate-800" action="{% url 'ledger:xact-create' %}" method="POST">
+      {% csrf_token %}
+      {{ transaction_create_form }}
+      <button type="submit">Create Transaction</button>
+      <button type="button" id="show-complex">Show Split</button>
+    </form>
     {% else %}
     <h2>Please select an account.</h2>
     {% endif %}

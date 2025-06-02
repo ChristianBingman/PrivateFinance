@@ -50,8 +50,17 @@ $(document).ready(function() {
 
   // Handle the show-complex button
   $('#show-complex').on('click', function() {
-    showSection(2);
-    show_complex = true
+    if (show_complex) {
+      $(`#id_memo_1`).add('hidden', true)
+      $(`#id_transaction_group_1`).addClass('inline')
+      hideSection(2);
+      show_complex = false
+    } else {
+      $(`#id_memo_1`).removeAttr('hidden')
+      $(`#id_transaction_group_1`).removeClass('inline')
+      showSection(2);
+      show_complex = true
+    }
   });
 
   // Watch for input in any amount field

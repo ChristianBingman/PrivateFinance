@@ -1,7 +1,7 @@
 <div>
   <ul>
     {% for entry in transaction_entries %}
-    <li>{{entry.transaction_id.description}} {{entry.amount|floatformat:entry.account.currency.fraction_traded}}</li>
+    <li><a href="{% url 'acctmgr:edit-xact-view' selected_account.id entry.transaction_id.id %}">{{entry.transaction_id.description}} {{entry.amount|floatformat:entry.account.currency.fraction_traded}}</a></li>
     {% endfor %}
   </ul>
 </div>

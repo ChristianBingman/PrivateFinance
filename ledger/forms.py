@@ -21,6 +21,9 @@ class TransactionCreateForm(forms.Form):
     selected_account = forms.IntegerField(
         required=False, widget=forms.widgets.NumberInput(attrs={"hidden": True})
     )
+    selected_transaction = forms.IntegerField(
+        required=False, widget=forms.widgets.HiddenInput()
+    )
     max_split = 20
 
     def __init__(self, *args, **kwargs):
@@ -53,10 +56,11 @@ class TransactionCreateForm(forms.Form):
     def clean(self):
         transaction_tuples: list[tuple[str | None, decimal.Decimal, Account]] = []
         cleaned_data_iter = iter(self.cleaned_data.values())
-        # skip date, description and selected account
+        # skip date, description, selected account, and selected transaction
         next(cleaned_data_iter)
         next(cleaned_data_iter)
         selected_account = next(cleaned_data_iter)
+        next(cleaned_data_iter)
         memo = next(cleaned_data_iter)
         amount = next(cleaned_data_iter)
         account = next(cleaned_data_iter)
@@ -91,6 +95,13 @@ class TransactionCreateForm(forms.Form):
 
     @transaction.atomic
     def save(self):
+        # For now let's just delete the original transaction
+        if self.cleaned_data["selected_transaction"]:
+            xact_detail = TransactionDetail.objects.get(
+                pk=self.cleaned_data["selected_transaction"]
+            )
+            xact_detail.delete()
+
         xact_detail = TransactionDetail(
             description=self.cleaned_data["description"],
             xact_date=self.cleaned_data["date"],
