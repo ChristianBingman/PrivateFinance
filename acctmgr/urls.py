@@ -7,8 +7,8 @@ urlpatterns = [
     path("", views.index, name="account-index"),
     path("account/<int:pk>", views.index, name="account-view"),
     path(
-        "account/<int:account_pk>/edit/<int:transactiondetail_pk>",
-        views.edit,
+        "account/<int:pk>/edit/<int:transaction_pk>",
+        views.index,
         name="edit-xact-view",
     ),
 ]

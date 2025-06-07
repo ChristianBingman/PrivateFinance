@@ -8,6 +8,25 @@ from .models import TransactionDetail, TransactionEntry
 from django.db import transaction
 
 
+class TransactionDeleteForm(forms.Form):
+    transaction = forms.IntegerField(min_value=1, widget=forms.widgets.HiddenInput())
+
+    # The account we want to redirect back to if valid
+    redirect_account = forms.IntegerField(
+        required=False, min_value=1, widget=forms.widgets.HiddenInput()
+    )
+
+    def clean_transaction(self):
+        try:
+            xact = TransactionDetail.objects.get(pk=self.cleaned_data["transaction"])
+            return xact
+        except TransactionDetail.DoesNotExist:
+            raise ValidationError("Invalid transaction id")
+
+    def save(self):
+        self.cleaned_data["transaction"].delete()
+
+
 class TransactionCreateForm(forms.Form):
     template_name = "ledger/xact_create_form_template.html"
     date = forms.DateField(initial=datetime.datetime.now())
@@ -56,7 +75,7 @@ class TransactionCreateForm(forms.Form):
     def clean(self):
         transaction_tuples: list[tuple[str | None, decimal.Decimal, Account]] = []
         cleaned_data_iter = iter(self.cleaned_data.values())
-        # skip date, description, selected account, and selected transaction
+        # New fields need to be added below
         next(cleaned_data_iter)
         next(cleaned_data_iter)
         selected_account = next(cleaned_data_iter)
@@ -95,17 +114,27 @@ class TransactionCreateForm(forms.Form):
 
     @transaction.atomic
     def save(self):
-        # For now let's just delete the original transaction
+        """Saves the form, including transactions
+
+        Raises:
+        ValueError -- Transaction is not balanced
+        """
         if self.cleaned_data["selected_transaction"]:
             xact_detail = TransactionDetail.objects.get(
                 pk=self.cleaned_data["selected_transaction"]
             )
-            xact_detail.delete()
-
-        xact_detail = TransactionDetail(
-            description=self.cleaned_data["description"],
-            xact_date=self.cleaned_data["date"],
-        )
+            xact_detail.xact_date = self.cleaned_data["date"]
+            xact_detail.description = self.cleaned_data["description"]
+            # Delete the entries since we will revalidate and recreate them
+            # If transactions are edited often then another solution would
+            # be to only recreate the ones that are modified, or even better
+            # just reuse as many as we can, but that gets more complicated
+            TransactionEntry.objects.filter(transaction_id=xact_detail).delete()
+        else:
+            xact_detail = TransactionDetail(
+                description=self.cleaned_data["description"],
+                xact_date=self.cleaned_data["date"],
+            )
         xact_detail.save()
         entries = []
         for memo, amount, account in self.cleaned_data["transactions"]:
