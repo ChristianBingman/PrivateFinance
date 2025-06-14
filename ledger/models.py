@@ -4,10 +4,19 @@ from acctmgr.models import Account
 import decimal
 
 
+class TransactionState(models.TextChoices):
+    NEW = "N"
+    CLEARED = "C"
+    RECONCILED = "R"
+
+
 class TransactionDetail(models.Model):
     id = models.BigAutoField("transaction id", primary_key=True)
     description = models.CharField(max_length=100)
     xact_date = models.DateField(default=datetime.now)
+    state = models.CharField(
+        max_length=1, choices=TransactionState, default=TransactionState.NEW
+    )
 
 
 class TransactionManager(models.Manager):

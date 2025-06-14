@@ -26,12 +26,16 @@
       </div>
     </div>
     {% endfor %}
+    <a href="{% url 'currencymgr:currency-editor' %}">Currency Editor</a>
+    <a href="{% url 'acctmgr:account-editor' %}">Account Editor</a>
   </div>
   <div class="col-span-3">
-    {% if transaction_entries  %}
+    {% if selected_account  %}
     <h2 class="text-2xl">{{ selected_account.name }}</h2>
     <br />
+    {% if transaction_entries %}
     {% include "ledger/account_entry_list.html" %}
+    {% endif %}
     <form class="bg-slate-800" action="{% url 'ledger:xact-create' %}" method="POST">
       {% csrf_token %}
       {{ transaction_create_form }}
@@ -46,7 +50,7 @@
       </form>
     {% endif %}
     {% else %}
-    <h2>Please select an account.</h2>
+    <h2>There are no entries, please enter a transaction entry or select an account.</h2>
     {% endif %}
   </div>
 </div>

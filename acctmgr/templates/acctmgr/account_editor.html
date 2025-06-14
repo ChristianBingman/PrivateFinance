@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}
+<title>Account Manager</title>
+{% endblock %}
+
+{% block customhead %}
+<link
+  rel="stylesheet"
+  href="{% static 'css/accounts.css' %}"
+  type="text/css"
+/>
+{% endblock %}
+
+{% block content %}
+<h1>Account Editor</h1>
+<form class="bg-slate-800" action="{{ create_form_action }}" method="POST">
+  {% csrf_token %}
+  {{ account_create_form }}
+  <button type="submit">Create Account</button>
+</form>
+<a href="{% url 'currencymgr:currency-editor' %}">Currency Editor</a>
+{% endblock %}

@@ -1,40 +1,13 @@
 import pytest
-from decimal import Decimal
 from functools import reduce
 import operator
 from django.core.exceptions import ValidationError
 from django.db.utils import IntegrityError
+from django.test import Client
+from django.shortcuts import reverse
+from pytest_django.asserts import assertRedirects
 
 from .models import Currency, Account, AccountTypes
-
-
-@pytest.mark.django_db
-def test_create_simple_currency():
-    usd_cur = Currency(
-        full_name="USD", symbol="USD", current_price=1, fraction_traded=2
-    )
-    usd_cur.save()
-    assert len(Currency.objects.all()) == 1
-
-
-@pytest.mark.django_db
-def test_rounding_price():
-    Currency.objects.create(
-        full_name="Rounded Currency",
-        symbol="RND",
-        current_price=Decimal("1.1234"),
-        fraction_traded=2,
-    )
-    assert Currency.objects.get(symbol="RND").current_price == Decimal("1.12")
-
-
-@pytest.mark.django_db
-def test_only_required_attribute():
-    usd_cur = Currency.objects.create(symbol="USD")
-    assert str(usd_cur) == "USD"
-    assert usd_cur.symbol == "USD"
-    assert usd_cur.fraction_traded == 2
-    assert usd_cur.current_price == Decimal(1.00)
 
 
 @pytest.mark.django_db
@@ -80,82 +53,6 @@ def test_create_child_account():
     assert not child_account.placeholder
 
 
-@pytest.fixture
-def setup_example_db():
-    usd_cur = Currency(
-        full_name="USD", symbol="USD", current_price=1.0, fraction_traded=2
-    )
-    usd_cur.save()
-    bank_accounts_placeholder = Account(
-        name="Bank Accounts",
-        currency=usd_cur,
-        acct_type="asset",
-        description="My Checking Accounts",
-        placeholder=True,
-    )
-    bank_accounts_placeholder.save()
-    Account(
-        name="Example Bank",
-        currency=usd_cur,
-        acct_type=AccountTypes.ASSET,
-        description="Primary Checkng Account",
-        parent=bank_accounts_placeholder,
-    ).save()
-    Account(
-        name="Example Bank",
-        currency=usd_cur,
-        acct_type=AccountTypes.ASSET,
-        description="Primary Savings Account",
-        parent=bank_accounts_placeholder,
-    ).save()
-    Account(
-        name="Dining",
-        currency=usd_cur,
-        acct_type=AccountTypes.EXPENSE,
-        description="Dining Expenses",
-    ).save()
-    sample_liabilities_account = Account(
-        name="Student Loans",
-        currency=usd_cur,
-        acct_type=AccountTypes.LIABILITY,
-        description="American Student Loans",
-        placeholder=True,
-    )
-    sample_liabilities_account.save()
-    Account(
-        name="Loan A",
-        currency=usd_cur,
-        acct_type=AccountTypes.LIABILITY,
-        description="Loan Account A",
-        parent=sample_liabilities_account,
-    ).save()
-    Account(
-        name="Loan B",
-        currency=usd_cur,
-        acct_type=AccountTypes.LIABILITY,
-        description="Loan Account B",
-        parent=sample_liabilities_account,
-    ).save()
-    Account(
-        name="Salary",
-        currency=usd_cur,
-        acct_type=AccountTypes.REVENUE,
-        description="Work Salary",
-    ).save()
-    Account(
-        name="Other Income",
-        currency=usd_cur,
-        acct_type=AccountTypes.REVENUE,
-        description="Extra Income",
-    ).save()
-    Account(
-        name="Opening Balances",
-        currency=usd_cur,
-        acct_type=AccountTypes.EQUITY,
-        description="Opening Balances",
-    ).save()
-
-
 def validate_child(accounts: list[dict]):
     # if there are children check they are valid first
     # then check that the children are the same
@@ -170,7 +67,7 @@ def validate_child(accounts: list[dict]):
 
 
 @pytest.mark.django_db
-def test_get_account_listing(setup_example_db):
+def test_get_account_listing(setup_example_accounts):
     accounts = Account.objects.get_accounts()
     assert list(accounts.keys()) == list(AccountTypes)
     for account in accounts.values():
@@ -178,7 +75,7 @@ def test_get_account_listing(setup_example_db):
 
 
 @pytest.mark.django_db
-def test_cycles_not_allowed(setup_example_db):
+def test_cycles_not_allowed(setup_example_accounts):
     savings_account = Account.objects.get(description__contains="Savings Account")
     parent_account = Account.objects.get(name="Bank Accounts")
     parent_account.parent = savings_account
@@ -187,7 +84,71 @@ def test_cycles_not_allowed(setup_example_db):
 
 
 @pytest.mark.django_db
-def test_duplicate_currencies(setup_example_db):
+def test_duplicate_currencies(setup_example_accounts):
     dup_cur = Currency(full_name="New currency", symbol="USD")
     with pytest.raises(IntegrityError):
         dup_cur.save()
+
+
+@pytest.mark.django_db
+def test_account_create_success():
+    usd_cur = Currency.objects.create(symbol="USD")
+    client = Client()
+    res = client.post(
+        reverse("acctmgr:account-editor"),
+        {
+            "name": "Bank Account 1",
+            "currency": "1",
+            "acct_type": AccountTypes.ASSET,
+            "description": "Test Account",
+        },
+    )
+    assertRedirects(res, reverse("acctmgr:account-index"))
+    account = Account.objects.get(pk=1)
+    assert account is not None
+    assert account.name == "Bank Account 1"
+    assert account.currency == usd_cur
+    assert account.acct_type == AccountTypes.ASSET
+    assert account.description == "Test Account"
+    assert not account.placeholder
+
+
+@pytest.mark.django_db
+def test_account_create_invalid_form():
+    client = Client()
+    res = client.post(reverse("acctmgr:account-editor"), {})
+    assertRedirects(res, reverse("acctmgr:account-index"))
+
+
+@pytest.mark.django_db
+def test_account_form_displayed_on_account_editor():
+    client = Client()
+    res = client.get(reverse("acctmgr:account-editor"))
+    assert res.context["account_create_form"]
+    assert f'action="{reverse("acctmgr:account-editor")}"' in str(res.content)
+
+
+@pytest.mark.django_db
+def test_account_edit_success(setup_example_accounts):
+    client = Client()
+    res = client.get(reverse("acctmgr:account-editor", args=[2]))
+    acct_form_initial = res.context["account_create_form"].initial
+    assert acct_form_initial["name"] == "Example Bank 1"
+    assert acct_form_initial["currency"] == Currency.objects.get(symbol="USD").pk
+    assert acct_form_initial["acct_type"] == AccountTypes.ASSET
+    assert acct_form_initial["description"] == "Primary Checking Account"
+    assert acct_form_initial["parent"] == 1
+    assert acct_form_initial["placeholder"] is False
+    acct_form_initial["description"] = "Old Checking Account"
+    res = client.post(reverse("acctmgr:account-editor", args=[2]), acct_form_initial)
+    assertRedirects(res, reverse("acctmgr:account-index"))
+    assert Account.objects.get(pk=2).description == "Old Checking Account"
+
+
+@pytest.mark.django_db
+def test_account_delete_success(setup_example_accounts):
+    client = Client()
+    res = client.get(reverse("acctmgr:account-delete", args=[2]))
+    assertRedirects(res, reverse("acctmgr:account-index"))
+    with pytest.raises(Currency.DoesNotExist):
+        Currency.objects.get(pk=2)

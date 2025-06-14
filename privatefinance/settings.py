@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "ledger",
     "acctmgr",
+    "currencymgr",
 ]
 
 MIDDLEWARE = [

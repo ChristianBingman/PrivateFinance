@@ -2,88 +2,12 @@ import pytest
 import decimal
 from .models import TransactionEntry, TransactionDetail
 from .forms import TransactionCreateForm, TransactionDeleteForm
-from acctmgr.models import Account, Currency, AccountTypes
+from acctmgr.models import Account
 from django.db.models.deletion import RestrictedError
 from datetime import datetime
 from django.test import Client
 from django.urls import reverse
 from pytest_django.asserts import assertRedirects
-
-
-@pytest.fixture
-def setup_example_accounts():
-    usd_cur = Currency(
-        full_name="USD", symbol="USD", current_price=1.0, fraction_traded=2
-    )
-    usd_cur.save()
-    bank_accounts_placeholder = Account(
-        name="Bank Accounts",
-        currency=usd_cur,
-        acct_type="asset",
-        description="My Checking Accounts",
-        placeholder=True,
-    )
-    bank_accounts_placeholder.save()
-    Account(
-        name="Example Bank 1",
-        currency=usd_cur,
-        acct_type=AccountTypes.ASSET,
-        description="Primary Checkng Account",
-        parent=bank_accounts_placeholder,
-    ).save()
-    Account(
-        name="Example Bank 2",
-        currency=usd_cur,
-        acct_type=AccountTypes.ASSET,
-        description="Primary Savings Account",
-        parent=bank_accounts_placeholder,
-    ).save()
-    Account(
-        name="Dining",
-        currency=usd_cur,
-        acct_type=AccountTypes.EXPENSE,
-        description="Dining Expenses",
-    ).save()
-    sample_liabilities_account = Account(
-        name="Student Loans",
-        currency=usd_cur,
-        acct_type=AccountTypes.LIABILITY,
-        description="American Student Loans",
-        placeholder=True,
-    )
-    sample_liabilities_account.save()
-    Account(
-        name="Loan A",
-        currency=usd_cur,
-        acct_type=AccountTypes.LIABILITY,
-        description="Loan Account A",
-        parent=sample_liabilities_account,
-    ).save()
-    Account(
-        name="Loan B",
-        currency=usd_cur,
-        acct_type=AccountTypes.LIABILITY,
-        description="Loan Account B",
-        parent=sample_liabilities_account,
-    ).save()
-    Account(
-        name="Salary",
-        currency=usd_cur,
-        acct_type=AccountTypes.REVENUE,
-        description="Work Salary",
-    ).save()
-    Account(
-        name="Other Income",
-        currency=usd_cur,
-        acct_type=AccountTypes.REVENUE,
-        description="Extra Income",
-    ).save()
-    Account(
-        name="Opening Balances",
-        currency=usd_cur,
-        acct_type=AccountTypes.EQUITY,
-        description="Opening Balances",
-    ).save()
 
 
 @pytest.mark.django_db
@@ -313,6 +237,8 @@ def test_transaction_form_submission_redirects_on_success(setup_example_accounts
             "description": "A sample transaction",
             "amount_1": "10.00",
             "account_1": "3",
+            "amount_2": "-10.00",
+            "account_2": "2",
             "selected_account": 2,
         },
     )
@@ -376,6 +302,23 @@ def test_transaction_form_with_amount_and_missing_account_is_not_valid(
             "amount_1": decimal.Decimal("10.00"),
             "account_1": Account.objects.get(name="Dining"),
             "amount_2": decimal.Decimal("-5.00"),
+            "selected_account": 2,
+        }
+    )
+    assert not form.is_valid()
+
+
+@pytest.mark.django_db
+def test_transaction_form_with_account_and_missing_amount_is_not_valid(
+    setup_example_accounts,
+):
+    form = TransactionCreateForm(
+        {
+            "date": datetime.now(),
+            "description": "A complex transaction",
+            "amount_1": decimal.Decimal("10.00"),
+            "account_1": Account.objects.get(name="Dining"),
+            "account_2": Account.objects.get(name="Example Bank 1"),
             "selected_account": 2,
         }
     )
@@ -576,3 +519,21 @@ def test_transaction_form_edit_shows_complex_transaction(setup_example_accounts)
     assert xact_create_form_initial["amount_1"] == decimal.Decimal("10.00")
     assert xact_create_form_initial["amount_2"] == decimal.Decimal("-5.00")
     assert xact_create_form_initial["amount_3"] == decimal.Decimal("-5.00")
+
+
+def test_transaction_create_default_reverse_entry_with_different_currency(): ...
+
+
+def test_transaction_create_form_with_new_account():
+    # Ensure that a fresh account still shows the transaction create form
+    ...
+
+
+def test_transaction_create_form_auto_balances():
+    # Will need selenium for this
+    ...
+
+
+def test_transaction_create_form_with_different_prices_balances():
+    # Will need selenium for this
+    ...

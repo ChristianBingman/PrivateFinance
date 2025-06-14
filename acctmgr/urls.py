@@ -1,4 +1,4 @@
-from django.urls import path
+from django.urls import path, re_path
 
 from . import views
 
@@ -11,4 +11,8 @@ urlpatterns = [
         views.index,
         name="edit-xact-view",
     ),
+    re_path(
+        r"^account-editor/(?P<pk>[0-9]+)?$", views.account_editor, name="account-editor"
+    ),
+    path("account-editor/<int:pk>/delete", views.account_delete, name="account-delete"),
 ]

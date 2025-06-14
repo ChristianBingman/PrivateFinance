@@ -1,11 +1,12 @@
-from django.shortcuts import render, get_object_or_404
-from django.http import HttpRequest
+from django.shortcuts import render, get_object_or_404, reverse
+from django.http import HttpRequest, HttpResponseRedirect
 from django.db.models import QuerySet
 import decimal
 
 from .models import Account
 from ledger.models import TransactionDetail, TransactionEntry
 from ledger.forms import TransactionCreateForm, TransactionDeleteForm
+import acctmgr.forms
 
 
 def index(request: HttpRequest, pk=None, transaction_pk=None):
@@ -38,6 +39,7 @@ def index(request: HttpRequest, pk=None, transaction_pk=None):
                 transaction_form_initial[f"account_{current_entry}"] = (
                     xact_entry.account
                 )
+                transaction_form_initial[f"price_{current_entry}"] = xact_entry.price
                 transaction_form_initial[f"amount_{current_entry}"] = (
                     xact_entry.amount.quantize(
                         decimal.Decimal(
@@ -60,3 +62,33 @@ def index(request: HttpRequest, pk=None, transaction_pk=None):
             account=selected_account
         ).order_by("transaction_id__xact_date")
     return render(request, "acctmgr/account_list.html", context)
+
+
+def account_editor(request: HttpRequest, pk=None):
+    context = {}
+    if request.method == "POST":
+        if pk:
+            account = get_object_or_404(Account, pk=pk)
+            form = acctmgr.forms.AccountCreateForm(request.POST, instance=account)
+        else:
+            form = acctmgr.forms.AccountCreateForm(request.POST)
+        if form.is_valid():
+            form.save()
+        print(form.errors)
+        return HttpResponseRedirect(reverse("acctmgr:account-index"))
+    if pk:
+        account = get_object_or_404(Account, pk=pk)
+        context["account_create_form"] = acctmgr.forms.AccountCreateForm(
+            instance=account
+        )
+        context["create_form_action"] = reverse("acctmgr:account-editor", args=[pk])
+    else:
+        context["account_create_form"] = acctmgr.forms.AccountCreateForm()
+        context["create_form_action"] = reverse("acctmgr:account-editor")
+    return render(request, "acctmgr/account_editor.html", context)
+
+
+def account_delete(request: HttpRequest, pk: int):
+    account: Account = get_object_or_404(Account, pk=pk)
+    account.delete()
+    return HttpResponseRedirect(reverse("acctmgr:account-index"))

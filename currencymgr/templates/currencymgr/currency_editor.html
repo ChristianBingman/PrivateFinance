@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}
+<title>Currency Manager</title>
+{% endblock %}
+
+{% block customhead %}
+<link
+  rel="stylesheet"
+  href="{% static 'css/accounts.css' %}"
+  type="text/css"
+/>
+{% endblock %}
+
+{% block content %}
+<h1>Currency Editor</h1>
+<form class="bg-slate-800" action="{{ create_form_action }}" method="POST">
+  {% csrf_token %}
+  {{ currency_create_form }}
+  <button type="submit">Create Currency</button>
+</form>
+{% endblock %}

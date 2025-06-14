@@ -29,7 +29,7 @@ class TransactionDeleteForm(forms.Form):
 
 class TransactionCreateForm(forms.Form):
     template_name = "ledger/xact_create_form_template.html"
-    date = forms.DateField(initial=datetime.datetime.now())
+    date = forms.DateField(initial=datetime.datetime.now(), required=True)
     description = forms.CharField(
         required=True,
         max_length=256,
@@ -64,6 +64,14 @@ class TransactionCreateForm(forms.Form):
                     attrs={"hidden": False if i == 1 else True}
                 ),
             )
+            self.fields[f"price_{i}"] = forms.DecimalField(
+                required=False,
+                max_digits=19,
+                decimal_places=10,
+                widget=forms.widgets.NumberInput(
+                    attrs={"placeholder": "price", "hidden": True}
+                ),
+            )
             self.fields[f"account_{i}"] = forms.ModelChoiceField(
                 accounts,
                 required=True if i == 1 else False,
@@ -72,41 +80,27 @@ class TransactionCreateForm(forms.Form):
                 ),
             )
 
-    def clean(self):
-        transaction_tuples: list[tuple[str | None, decimal.Decimal, Account]] = []
-        cleaned_data_iter = iter(self.cleaned_data.values())
-        # New fields need to be added below
-        next(cleaned_data_iter)
-        next(cleaned_data_iter)
-        selected_account = next(cleaned_data_iter)
-        next(cleaned_data_iter)
-        memo = next(cleaned_data_iter)
-        amount = next(cleaned_data_iter)
-        account = next(cleaned_data_iter)
-        for _ in range(1, self.max_split):
+    def clean(self, *args, **kwargs):
+        transaction_tuples: list[
+            tuple[str | None, decimal.Decimal, decimal.Decimal, Account]
+        ] = []
+        for i in range(1, self.max_split):
+            memo = self.cleaned_data.get(f"memo_{i}", None)
+            account = self.cleaned_data.get(f"account_{i}", None)
+            amount = self.cleaned_data.get(f"amount_{i}", None)
+            price = self.cleaned_data.get(f"price_{i}", None)
             if account is not None and amount is None:
                 raise ValidationError("Amount is required when account is defined")
             elif account is None and amount is not None:
                 raise ValidationError("Account is required when amount is defined")
             elif account is not None and amount is not None:
-                transaction_tuples.append((memo, amount, account))
-            memo = next(cleaned_data_iter)
-            amount = next(cleaned_data_iter)
-            account = next(cleaned_data_iter)
-
-        # If it is a simple transaction, add the reverse entry
-        if len(transaction_tuples) == 1:
-            transaction_tuples.append(
-                (
-                    "",
-                    -transaction_tuples[0][1],
-                    Account.objects.get(pk=selected_account),
-                )
-            )
+                if price is None:
+                    price = account.currency.current_price
+                transaction_tuples.append((memo, amount, price, account))
 
         self.cleaned_data["transactions"] = transaction_tuples
 
-        xact_sum = reduce(lambda acc, val: acc + val[1], transaction_tuples, 0)
+        xact_sum = reduce(lambda acc, val: acc + val[1] * val[2], transaction_tuples, 0)
         if xact_sum != 0:
             # In the future we should just throw the difference in an imbalance account
             raise ValidationError("Transaction does not sum to 0.")
@@ -137,13 +131,14 @@ class TransactionCreateForm(forms.Form):
             )
         xact_detail.save()
         entries = []
-        for memo, amount, account in self.cleaned_data["transactions"]:
+        for memo, amount, price, account in self.cleaned_data["transactions"]:
             entries.append(
                 TransactionEntry(
                     transaction_id=xact_detail,
                     account=account,
                     memo=memo,
                     amount=amount,
+                    price=price,
                 )
             )
         TransactionEntry.objects.create_balanced_transaction(entries)

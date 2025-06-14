@@ -20,6 +20,7 @@ from django.urls import path, include
 
 urlpatterns = [
     path("", include("acctmgr.urls")),
+    path("currencies/", include("currencymgr.urls")),
     path("ledger/", include("ledger.urls")),
     path("admin/", admin.site.urls),
 ]

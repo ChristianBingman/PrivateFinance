@@ -29,13 +29,10 @@ omit = [
   "**/tests.py",
   "**/*_tests.py",
   "**/test_*.py",
-  "**/migrations/**"
+  "**/migrations/**",
+  "**/conftest.py"
 ]
 
 [tool.coverage.report]
 fail_under = 95
 skip_empty = true
-
-[tool.pyright]
-venvPath = "."
-venv = ".venv"
